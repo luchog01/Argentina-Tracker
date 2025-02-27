@@ -13,6 +13,7 @@ import sys
 from src.core.database.mongo import Database, NotFoundException
 from src.core.database.mongo.tickers import TickersDatabase
 from src.core.database.mongo.users import UsersDatabase
+from src.excel_handler import handler as ExcelHandler
 
 app = FastAPI()
 
@@ -230,41 +231,41 @@ async def support_ticket(password: str):
     with open("support.txt", "r") as f:
         return f.read()
 
-# @app.post("/engineUpdate/{password}/{today}", tags=["Engine"])
-# async def update_engine(password: str,today: str, request: Request, db: TickersDatabase = Depends(_services.get_db)):
-#     try:
-#         if password == ENGINE_PSWD:
-#             payload = await request.json()
-#             ExcelHandler.update_excel(payload, today)
-#             for t in payload.keys():
-#                 db_ticker = await _services.get_ticker_by_name(db=db, name=t)
-#                 if db_ticker:
-#                     new_fund: dict = db_ticker.funds
-#                     for f in payload[t].keys():
-#                         if f in new_fund.keys():
-#                             if today != new_fund[f]["dates"][-1]:
-#                                 new_fund[f]["dates"].append(today)
-#                                 new_fund[f]["qty"].append(payload[t][f]["qty"])
-#                                 new_fund[f]["prices"].append(payload[t][f]["price"])
-#                             else:
-#                                 new_fund[f]["qty"][-1] = payload[t][f]["qty"]
-#                                 new_fund[f]["prices"][-1] = payload[t][f]["price"]
-#                         else:
-#                             new_fund[f] = {"dates": [today], "qty": [payload[t][f]["qty"]], "prices": [payload[t][f]["price"]]}
-#                     await _services.update_ticker(db=db, ticker=_schemas.createTicker(name=t,funds=new_fund,price=0,type="basic"))                
-#                 else:
-#                     new_fund: dict = {}
-#                     for f in payload[t].keys():
-#                         new_fund[f] = {"dates": [today], "qty": [payload[t][f]["qty"]], "prices": [payload[t][f]["price"]]}
-#                     await _services.create_ticker(db=db, ticker=_schemas.Ticker(name=t,funds=new_fund,price=0,type="basic"))
-#         else:
-#             return "Incorrect Password"
-#     except Exception as e:
-#         exc_type, exc_obj, exc_tb = sys.exc_info()
-#         print("[ERROR] engineUpdate: ",e)
-#         raise HTTPException(
-#                 status_code=500, detail=f"Internal Server Error {exc_type} {exc_tb.tb_lineno} {e}"
-#             )    
+@app.post("/engineUpdate/{password}/{today}", tags=["Engine"])
+async def update_engine(password: str,today: str, request: Request, db: TickersDatabase = Depends(_services.get_db)):
+    try:
+        if password == ENGINE_PSWD:
+            payload = await request.json()
+            ExcelHandler.update_excel(payload, today)
+            for t in payload.keys():
+                db_ticker = await _services.get_ticker_by_name(db=db, name=t)
+                if db_ticker:
+                    new_fund: dict = db_ticker.funds
+                    for f in payload[t].keys():
+                        if f in new_fund.keys():
+                            if today != new_fund[f]["dates"][-1]:
+                                new_fund[f]["dates"].append(today)
+                                new_fund[f]["qty"].append(payload[t][f]["qty"])
+                                new_fund[f]["prices"].append(payload[t][f]["price"])
+                            else:
+                                new_fund[f]["qty"][-1] = payload[t][f]["qty"]
+                                new_fund[f]["prices"][-1] = payload[t][f]["price"]
+                        else:
+                            new_fund[f] = {"dates": [today], "qty": [payload[t][f]["qty"]], "prices": [payload[t][f]["price"]]}
+                    await _services.update_ticker(db=db, ticker=_schemas.Ticker(id=db_ticker.id,name=t,funds=new_fund,price=0,type="basic"))                
+                else:
+                    new_fund: dict = {}
+                    for f in payload[t].keys():
+                        new_fund[f] = {"dates": [today], "qty": [payload[t][f]["qty"]], "prices": [payload[t][f]["price"]]}
+                    await _services.create_ticker(db=db, ticker=_schemas.Ticker(name=t,funds=new_fund,price=0,type="basic"))
+        else:
+            return "Incorrect Password"
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print("[ERROR] engineUpdate: ",e, exc_tb.tb_lineno)
+        raise HTTPException(
+                status_code=500, detail=f"Internal Server Error {exc_type} {exc_tb.tb_lineno} {e}"
+            )    
 
 @app.post("/delete/{password}/{name}", tags=["Engine"])
 async def delete_ticker(password: str, name: str, db: TickersDatabase = Depends(_services.get_db)):
@@ -283,21 +284,33 @@ async def delete_ticker(password: str, name: str, db: TickersDatabase = Depends(
 # PLAYGROUND
 # -------------------------------------------------------------------
 # @app.get("/test")
-# async def test(db: TickersDatabase = Depends(_services.get_old_db)):
-#     tickers = _services.get_old_tickers(db=db)
-#     tickers_database = TickersDatabase()
-#     for ticker in tickers:
-#         ticker = _schemas.Ticker(
-#             id=ticker.id,
-#             name=ticker.name,
-#             funds=ticker.funds,
-#             price=ticker.price,
-#             type=ticker.type
-#         )
-#         await tickers_database.create(ticker)
+# def test(db: _orm.Session = Depends(_services.get_db)):
+#     try:
+#         print("test")
+#         tickers = _services.get_tickers(db=db)
+#         print(type(tickers))
+#         for t in tickers:
+#             print(t.name)
+#             funds = t.funds
+#             print(type(funds))
+#             a = 0
+#             elements = 0
+#             for f in funds.keys():
+#                 if f not in ["total", "avg"]:
+#                     try:
+#                         a += funds[f]["qty"][1]
+#                         elements += 1
+#                     except:
+#                         print(f)
 
-    
-    
+#             funds["avg"]["qty"][1] = round(a/elements,2)
+#             funds["total"]["qty"][1] = round(a,2)
+#             _services.update_ticker(db=db, ticker=_schemas.createTicker(name=t.name,funds=funds,price=0,type="basic"))
+#     except Exception as e:
+#         print("[ERROR] test: ",e)
+#         raise HTTPException(
+#                 status_code=500, detail="Internal Server Error"
+#             )
 # -------------------------------------------------------------------
 # RUN
 # -------------------------------------------------------------------

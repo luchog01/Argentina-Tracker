@@ -22,12 +22,13 @@ print("Start...")
 import datetime
 from pyhomebroker import HomeBroker
 
-broker = "265"
+broker = "20"
 dni = "43626546"
-user = "Luciano"
-password = "Lucigar01.."
+user = "Lucho01"
+password = "Lucigar02.."
 
 hb = HomeBroker(int(broker))
+print(f"Broker: {hb.broker} dni: {dni} user: {user} password: {password}")
 hb.auth.login(dni=dni, user=user, password=password, raise_exception=True)
 
 # traer el dia de ayer y el dia de hoy y agarrar el ultimo disponible

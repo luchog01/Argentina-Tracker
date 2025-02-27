@@ -17,7 +17,7 @@ def update_excel(funds_data: dict, fecha: str) -> None:
         for key in funds_data.keys():
             file_path = os.path.join(files_folder,f"{key}.xlsx")
             try:
-                old_df = pd.read_excel(file_path, index_col=0)
+                old_df = pd.read_excel(file_path, index_col=0, engine="openpyxl")
             except FileNotFoundError:
                 old_df = pd.DataFrame()
             update_df = funds_data[key]
@@ -31,7 +31,7 @@ def update_excel(funds_data: dict, fecha: str) -> None:
                 
                 update_df = old_df.join(update_df, how="outer", sort=True) # Une los dataframes
             
-                update_df.to_excel(file_path)
+                update_df.to_excel(file_path, engine="openpyxl")
                 print(f"[OK] [file_handler.py] [{key}] Excel saved")
             except ValueError:
                 print(f"[ERROR] [file_handler.py] [{key}] ValueError when joining dataframes")
